@@ -1,11 +1,13 @@
-import React, { Component } from 'react'
+import React from 'react'
 import { Route, Link } from 'react-router-dom'
 
 // import * as BooksAPI from './BooksAPI'
 import './App.css'
+
+import Search from './Search'
 import Shelf from './Shelf'
 import * as BooksAPI from './BooksAPI'
-import Book from './Book'
+
 
 const shelfs = [
                 {"name":"Currently Reading", "id":"currentlyReading"},
@@ -28,11 +30,18 @@ class BooksApp extends React.Component {
     BooksAPI.getAll()
       .then((books) => {
         this.setState(() => ({
-          books: books.map((book) => ({"title":book.title, "author":book.authors[0], 
-                               "cover_img": book.imageLinks.thumbnail, "shelf": book.shelf
-                          }))
+          books: books.map((book) => ({"title":book.title, "author": (book.authors === undefined? "": book.authors.join(", ")), 
+                "cover_img": (book.imageLinks === undefined? "": book.imageLinks.thumbnail), 
+                "shelf": book.shelf, "id": book.id
         }))
-      })
+      }))
+  })}
+
+  updateBookShelf = (book, shelf) => {
+    this.setState((currentState) => ({
+      books: [...currentState.books.filter((bookEach)=> bookEach.id !== book.id), book]
+    }))
+    BooksAPI.update(book, shelf)
   }
 
   render() {
@@ -41,26 +50,7 @@ class BooksApp extends React.Component {
     return (
       <div className="app">
         <Route path="/search" render={() =>
-          <div className="search-books">
-            <div className="search-books-bar">
-              <Link className="close-search" to='/'>Close</Link>
-              <div className="search-books-input-wrapper">
-                {/*
-                  NOTES: The search from BooksAPI is limited to a particular set of search terms.
-                  You can find these search terms here:
-                  https://github.com/udacity/reactnd-project-myreads-starter/blob/master/SEARCH_TERMS.md
-
-                  However, remember that the BooksAPI.search method DOES search by title or author. So, don't worry if
-                  you don't find a specific author or title. Every search is limited by search terms.
-                */}
-                <input type="text" placeholder="Search by title or author"/>
-
-              </div>
-            </div>
-            <div className="search-books-results">
-              <ol className="books-grid"></ol>
-            </div>
-          </div>
+          <Search books={books} updateBookShelf={this.updateBookShelf} />
         } />
         <Route exact path='/' render={() =>
           <div className="list-books">
@@ -70,7 +60,10 @@ class BooksApp extends React.Component {
             <div className="list-books-content">
               <div>
                 {shelfs.map((shelf) => (
-                    <Shelf shelf_name={shelf.name} books={books.filter((book)=>(book.shelf===shelf.id))} />
+                    <Shelf key={shelf.id} shelf_name={shelf.name} 
+                           books={books.filter((book)=>(book.shelf===shelf.id))} 
+                           updateBookShelf={this.updateBookShelf}
+                           />
                   ))}
               </div>
             </div>
